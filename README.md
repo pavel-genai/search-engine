@@ -1,7 +1,7 @@
 # Search Engine
 
-[![CI](https://github.com/ai-pavel/search-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/ai-pavel/search-engine/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/ai-pavel/search-engine/branch/main/graph/badge.svg)](https://codecov.io/gh/ai-pavel/search-engine)
+[![CI](https://github.com/ai-pavel/prospector/actions/workflows/ci.yml/badge.svg)](https://github.com/ai-pavel/prospector/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/ai-pavel/prospector/branch/main/graph/badge.svg)](https://codecov.io/gh/ai-pavel/prospector)
 
 A Java 17 inverted index search engine with TF-IDF ranking, boolean query support, and a REST API powered by Spring Boot.
 
