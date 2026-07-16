@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -40,6 +41,28 @@ class SearchEngineIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalResults").exists())
                 .andExpect(jsonPath("$.results").isArray());
+    }
+
+    @Test
+    void searchReturnsPopulatedResultEntries() throws Exception {
+        // Index two documents so IDF > 0 and the ranker produces results with
+        // positive scores, exercising the result-building loop in SearchController.
+        mockMvc.perform(post("/index")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\": \"Java Doc\", \"text\": \"java programming language is powerful\"}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/index")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\": \"Other Doc\", \"text\": \"python scripting language is concise\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/search").param("q", "java"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalResults").isNumber())
+                .andExpect(jsonPath("$.results[0].docId").exists())
+                .andExpect(jsonPath("$.results[0].title").isString())
+                .andExpect(jsonPath("$.results[0].score").isNumber())
+                .andExpect(jsonPath("$.results[0].snippet").exists());
     }
 
     @Test

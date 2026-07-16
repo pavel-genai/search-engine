@@ -118,4 +118,38 @@ class QueryParserBranchTest {
         // explicit AND. So "brown" is a leftover; parseOr finishes. Result = quick docs.
         assertEquals(2, results.size());
     }
+
+    @Test
+    void parseEmptyAfterOperatorReturnsAllDocs() {
+        // Trailing NOT with no operand: parsePrimary hits pos>=size (line 120)
+        // returning empty set; NOT then returns all docs minus empty = all docs.
+        assertEquals(index.getAllDocIds(), parser.parse("NOT "));
+    }
+
+    @Test
+    void evaluateTermWithUnknownTermReturnsEmpty() {
+        // tokenizer.tokenize of punctuation-only yields empty (line 134).
+        assertTrue(parser.parse("!!!").isEmpty());
+    }
+
+    @Test
+    void phraseWithOnlyPunctuationReturnsEmpty() {
+        // Phrase body tokenizes to empty (line 146).
+        assertTrue(parser.parse("\"!!!\"").isEmpty());
+    }
+
+    @Test
+    void phraseCheckReturnsFalseWhenCandidateDocMissingPosting() {
+        // Build a phrase where a candidate doc (matched by first term) lacks a
+        // posting for a later term in allPostings. getPositions returns empty
+        // (lines 207-208) and checkPhrase returns false.
+        InvertedIndex idx = new InvertedIndex();
+        idx.addDocument("Doc 1", "alpha beta");
+        idx.addDocument("Doc 2", "alpha gamma");
+        QueryParser p = new QueryParser(idx);
+        // "alpha beta" — doc2 is a candidate (has alpha) but lacks beta posting.
+        Set<Integer> results = p.parse("\"alpha beta\"");
+        assertEquals(1, results.size());
+        assertTrue(results.contains(1));
+    }
 }

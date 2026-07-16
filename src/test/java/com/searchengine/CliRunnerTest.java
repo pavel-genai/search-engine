@@ -124,4 +124,63 @@ class CliRunnerTest {
         assertEquals(0, code);
         assertTrue(out.toString().contains("No results found."));
     }
+
+    @Test
+    void unreadableTxtFileLogsErrorAndContinues(@TempDir Path tempDir) throws IOException {
+        // A .txt entry that is actually a directory causes Files.readString to
+        // throw IOException, exercising the per-file catch block (lines 59-60).
+        Files.createDirectory(tempDir.resolve("subdir.txt"));
+        Files.writeString(tempDir.resolve("good.txt"), "hello world");
+        String input = "quit\n";
+        System.setIn(new ByteArrayInputStream(input.getBytes()));
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ByteArrayOutputStream err = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(out));
+        System.setErr(new PrintStream(err));
+
+        int code = CliRunner.runReturningExitCode(new String[]{tempDir.toString()});
+        assertEquals(0, code);
+        assertTrue(err.toString().contains("Error reading"), err.toString());
+        assertTrue(out.toString().contains("Indexed 1 documents"), out.toString());
+    }
+
+    @Test
+    void saveFailureLogsWarning(@TempDir Path tempDir) throws IOException {
+        // Make the relative index-data path a regular file so that
+        // IndexPersistence.save fails when trying to create its parent dir,
+        // exercising the save catch block (lines 67-68).
+        Files.writeString(tempDir.resolve("a.txt"), "hello world");
+        String input = "quit\n";
+        System.setIn(new ByteArrayInputStream(input.getBytes()));
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ByteArrayOutputStream err = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(out));
+        System.setErr(new PrintStream(err));
+
+        java.io.File indexData = new java.io.File("index-data");
+        // Remove any existing index-data (dir or file) and recreate as a file
+        // so save() cannot create the parent directory.
+        deleteRecursively(indexData);
+        assertTrue(indexData.createNewFile());
+        try {
+            int code = CliRunner.runReturningExitCode(new String[]{tempDir.toString()});
+            assertEquals(0, code);
+            assertTrue(err.toString().contains("Warning: could not save index"),
+                    err.toString());
+        } finally {
+            deleteRecursively(indexData);
+        }
+    }
+
+    private static void deleteRecursively(java.io.File f) {
+        if (f.isDirectory()) {
+            java.io.File[] children = f.listFiles();
+            if (children != null) {
+                for (java.io.File c : children) {
+                    deleteRecursively(c);
+                }
+            }
+        }
+        f.delete();
+    }
 }

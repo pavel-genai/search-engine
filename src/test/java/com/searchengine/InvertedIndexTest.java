@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -56,5 +57,39 @@ class InvertedIndexTest {
         List<Posting> postings = index.getPostings("hello");
         assertEquals(1, postings.size());
         assertEquals(3, postings.get(0).getTermFrequency());
+    }
+
+    @Test
+    void getFullIndexReturnsUnmodifiableMap() {
+        index.addDocument("Doc 1", "hello world");
+        assertEquals(2, index.getFullIndex().size());
+        assertThrows(UnsupportedOperationException.class,
+                () -> index.getFullIndex().put("x", List.of()));
+    }
+
+    @Test
+    void getDocumentsReturnsUnmodifiableMap() {
+        index.addDocument("Doc 1", "hello world");
+        assertEquals(1, index.getDocuments().size());
+        assertThrows(UnsupportedOperationException.class,
+                () -> index.getDocuments().put(99, null));
+    }
+
+    @Test
+    void getDocumentReturnsNullForMissingId() {
+        assertNull(index.getDocument(123));
+    }
+
+    @Test
+    void getTermCountReflectsUniqueTerms() {
+        index.addDocument("Doc 1", "hello world hello");
+        assertEquals(2, index.getTermCount());
+    }
+
+    @Test
+    void getAllDocIdsReturnsIndexedIds() {
+        index.addDocument("Doc 1", "hello");
+        index.addDocument("Doc 2", "world");
+        assertEquals(Set.of(1, 2), index.getAllDocIds());
     }
 }
